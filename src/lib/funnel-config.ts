@@ -115,8 +115,8 @@ export const CONFIG: FunnelConfig = {
 
   leadEndpoint: "/api/leads",
 
-  // SUBSTITUA pelo ID do seu Pixel do Facebook.
-  facebookPixelId: "",
+  // ID do Pixel do Facebook.
+  facebookPixelId: "1546268713221763",
 
   // SUBSTITUA pelo link do checkout (Hotmart/Kiwify/etc). Vazio = cai no WhatsApp.
   checkoutUrl: "",
