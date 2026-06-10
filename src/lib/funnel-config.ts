@@ -118,8 +118,8 @@ export const CONFIG: FunnelConfig = {
   // ID do Pixel do Facebook.
   facebookPixelId: "1546268713221763",
 
-  // SUBSTITUA pelo link do checkout (Hotmart/Kiwify/etc). Vazio = cai no WhatsApp.
-  checkoutUrl: "",
+  // Link do checkout (Kirvano). Vazio = cai no WhatsApp.
+  checkoutUrl: "https://pay.kirvano.com/dc3ecc05-21a3-486f-bc0e-de24aae0b281",
 
   whatsapp: {
     // SUBSTITUA pelo número público do WhatsApp do bot (formato internacional).
