@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CONFIG } from "@/lib/funnel-config";
+import { CONFIG, pickText, type Gender, type QuizStep } from "@/lib/funnel-config";
 import { getSessions, type Session } from "@/lib/db";
 import "./dashboard.css";
 
@@ -11,26 +11,63 @@ export const metadata: Metadata = {
 };
 
 const STEP_LABELS: Record<string, string> = {
-  objetivo: "Objetivo",
-  desafio: "Desafio",
-  momento: "Momento",
   nome: "Nome",
+  classificacao: "Classificação",
+  objetivo: "Objetivo",
+  "corpo-dos-sonhos": "Corpo dos sonhos",
+  identificacao: "Identificação",
+  impacto: "Impacto",
+  tentativas: "Tentativas",
+  consistencia: "Consistência",
+  caneta: "Caneta (GLP-1)",
+  peso: "Peso",
+  altura: "Altura",
+  habitos: "Hábitos",
+  meta: "Meta a eliminar",
+  "corpo-desejado": "Corpo desejado",
+  projecao: "Motivação",
+  compromisso: "Compromisso",
   telefone: "WhatsApp",
 };
 
-function stepLabel(index: number): string {
-  const step = CONFIG.steps[index];
-  if (!step) return "Entrou";
-  return STEP_LABELS[step.id] ?? step.title;
+function sessionGender(session: Session): Gender {
+  return session.answers.gender === "mulher" ? "mulher" : "homem";
+}
+
+function labelForStep(step: QuizStep): string {
+  return STEP_LABELS[step.id] ?? pickText(step.title, "homem");
+}
+
+// Converte a resposta crua (id, ids separados por vírgula, ou texto) em algo legível.
+function answerDisplay(step: QuizStep, session: Session): string {
+  const raw = session.answers[step.id];
+  if (!raw) return "";
+  const gender = sessionGender(session);
+
+  if (step.type === "single") {
+    const option = step.options.find((o) => o.id === raw);
+    return option ? pickText(option.label, gender) : raw;
+  }
+  if (step.type === "multi") {
+    const ids = raw.split(",").filter(Boolean);
+    return ids
+      .map((id) => {
+        const option = step.options.find((o) => o.id === id);
+        return option ? pickText(option.label, gender) : id;
+      })
+      .join(", ");
+  }
+  return raw; // slider / texto
 }
 
 function furthestStage(session: Session): {
   label: string;
   kind: "checkout" | "offer" | "step";
 } {
-  if (session.checkoutClicked) return { label: "Foi pro checkout", kind: "checkout" };
-  if (session.reachedResult) return { label: "Viu a oferta", kind: "offer" };
-  return { label: stepLabel(session.maxStepIndex), kind: "step" };
+  if (session.checkoutClicked) return { label: "Foi pro plano", kind: "checkout" };
+  if (session.reachedResult) return { label: "Viu o diagnóstico", kind: "offer" };
+  const step = CONFIG.steps.find((s) => s.id === session.maxStepId);
+  return { label: step ? labelForStep(step) : "Escolheu o caminho", kind: "step" };
 }
 
 function formatDate(iso: string): string {
@@ -48,18 +85,19 @@ export default async function DashboardPage() {
 
   const reachedResult = sessions.filter((s) => s.reachedResult).length;
   const checkout = sessions.filter((s) => s.checkoutClicked).length;
-  const whatsapp = sessions.filter((s) => s.whatsappClicked).length;
+  const homens = sessions.filter((s) => sessionGender(s) === "homem").length;
+  const mulheres = sessions.filter((s) => sessionGender(s) === "mulher").length;
 
   const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
-  const stages = [
-    ...CONFIG.steps.map((step, index) => ({
-      label: stepLabel(index),
-      count: sessions.filter((s) => s.maxStepIndex >= index).length,
-    })),
-    { label: "Viu a oferta", count: reachedResult },
-    { label: "Foi pro checkout", count: checkout },
-  ];
+  // Perguntas de escolha (única ou múltipla): base da distribuição de respostas.
+  const choiceSteps = CONFIG.steps.filter(
+    (s): s is Extract<QuizStep, { type: "single" | "multi" }> =>
+      s.type === "single" || s.type === "multi",
+  );
+
+  // Etapas mostradas no detalhe de cada pessoa (tudo, menos o nome que vai no topo).
+  const detailSteps = CONFIG.steps.filter((s) => s.id !== "nome");
 
   const sorted = [...sessions].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
@@ -69,7 +107,9 @@ export default async function DashboardPage() {
     <main className="dash">
       <div className="dash-head">
         <h1>Dashboard do Funil</h1>
-        <span className="dash-sub">Método Nutrido Para Sempre · atualiza a cada carregamento</span>
+        <span className="dash-sub">
+          {CONFIG.brandName} · atualiza a cada carregamento
+        </span>
       </div>
 
       {total === 0 ? (
@@ -84,54 +124,38 @@ export default async function DashboardPage() {
               <span className="dash-kpi-value">{total}</span>
             </div>
             <div className="dash-kpi">
-              <span className="dash-kpi-label">Chegaram na oferta</span>
+              <span className="dash-kpi-label">Viram o diagnóstico</span>
               <span className="dash-kpi-value">{reachedResult}</span>
               <span className="dash-kpi-extra">{pct(reachedResult)}% dos que entraram</span>
             </div>
             <div className="dash-kpi">
-              <span className="dash-kpi-label">Foram pro checkout</span>
+              <span className="dash-kpi-label">Foram pro plano</span>
               <span className="dash-kpi-value">{checkout}</span>
               <span className="dash-kpi-extra">{pct(checkout)}% dos que entraram</span>
             </div>
             <div className="dash-kpi">
-              <span className="dash-kpi-label">Cliques no WhatsApp</span>
-              <span className="dash-kpi-value">{whatsapp}</span>
+              <span className="dash-kpi-label">Homens / Mulheres</span>
+              <span className="dash-kpi-value">
+                {homens} / {mulheres}
+              </span>
             </div>
-          </section>
-
-          <h2 className="dash-section-title">Até onde chegaram</h2>
-          <section className="dash-funnel">
-            {stages.map((stage) => {
-              const percent = pct(stage.count);
-              return (
-                <div className="dash-stage" key={stage.label}>
-                  <span className="dash-stage-fill" style={{ width: `${percent}%` }} />
-                  <span className="dash-stage-row">
-                    <span className="dash-stage-label">{stage.label}</span>
-                    <span className="dash-stage-meta">
-                      <span className="dash-stage-count">{stage.count}</span> · {percent}%
-                    </span>
-                  </span>
-                </div>
-              );
-            })}
           </section>
 
           <h2 className="dash-section-title">Respostas por pergunta</h2>
           <section className="dash-questions">
-            {CONFIG.steps.map((step) => {
-              if (step.type !== "single") return null;
+            {choiceSteps.map((step) => {
               const answered = sessions.filter((s) => s.answers[step.id]).length;
               return (
                 <div className="dash-question" key={step.id}>
                   <div className="dash-question-head">
-                    <span className="dash-question-title">{step.title}</span>
+                    <span className="dash-question-title">{pickText(step.title, "homem")}</span>
                     <span className="dash-question-meta">{answered} responderam</span>
                   </div>
                   <div className="dash-funnel">
                     {step.options.map((option) => {
-                      const count = sessions.filter(
-                        (s) => s.answers[step.id] === option.id,
+                      // Conta tanto escolha única quanto múltipla (ids separados por vírgula).
+                      const count = sessions.filter((s) =>
+                        (s.answers[step.id] ?? "").split(",").includes(option.id),
                       ).length;
                       const percent =
                         answered > 0 ? Math.round((count / answered) * 100) : 0;
@@ -142,7 +166,9 @@ export default async function DashboardPage() {
                             style={{ width: `${percent}%` }}
                           />
                           <span className="dash-stage-row">
-                            <span className="dash-stage-label">{option.label}</span>
+                            <span className="dash-stage-label">
+                              {pickText(option.label, "homem")}
+                            </span>
                             <span className="dash-stage-meta">
                               <span className="dash-stage-count">{count}</span> · {percent}%
                             </span>
@@ -157,41 +183,47 @@ export default async function DashboardPage() {
           </section>
 
           <h2 className="dash-section-title">Pessoas ({total})</h2>
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Quando</th>
-                  <th>Nome</th>
-                  <th>WhatsApp</th>
-                  <th>Até onde chegou</th>
-                  <th>Checkout</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((session) => {
-                  const stage = furthestStage(session);
-                  return (
-                    <tr key={session.id}>
-                      <td>{formatDate(session.updatedAt)}</td>
-                      <td>{session.name ?? "—"}</td>
-                      <td>{session.phone ?? "—"}</td>
-                      <td>
-                        <span className={`dash-badge is-${stage.kind}`}>{stage.label}</span>
-                      </td>
-                      <td>
-                        {session.checkoutClicked ? (
-                          <span className="dash-yes">Sim</span>
-                        ) : (
-                          <span className="dash-no">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <section className="dash-people">
+            {sorted.map((session) => {
+              const stage = furthestStage(session);
+              const gender = sessionGender(session);
+              return (
+                <article className="dash-person" key={session.id}>
+                  <div className="dash-person-head">
+                    <div>
+                      <span className="dash-person-name">{session.name ?? "Sem nome"}</span>
+                      <span className="dash-person-meta">
+                        {gender === "mulher" ? "👩 Mulher" : "👨 Homem"}
+                        {" · "}
+                        {session.phone ?? "sem WhatsApp"}
+                        {" · "}
+                        {formatDate(session.updatedAt)}
+                      </span>
+                    </div>
+                    <div className="dash-person-tags">
+                      <span className={`dash-badge is-${stage.kind}`}>{stage.label}</span>
+                      {session.checkoutClicked ? (
+                        <span className="dash-badge is-checkout">Foi pro plano</span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <dl className="dash-answers">
+                    {detailSteps.map((step) => {
+                      const value = answerDisplay(step, session);
+                      if (!value) return null;
+                      return (
+                        <div className="dash-answer" key={step.id}>
+                          <dt className="dash-answer-q">{labelForStep(step)}</dt>
+                          <dd className="dash-answer-a">{value}</dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                </article>
+              );
+            })}
+          </section>
         </>
       )}
     </main>

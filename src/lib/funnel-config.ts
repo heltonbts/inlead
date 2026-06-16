@@ -1,48 +1,64 @@
+export type Gender = "homem" | "mulher";
+
+// Texto que pode ser igual pra todos ou variar por gênero.
+export type GText = string | { homem: string; mulher: string };
+
+export function pickText(value: GText | undefined, gender: Gender): string {
+  if (value == null) return "";
+  return typeof value === "string" ? value : value[gender];
+}
+
 export type QuizOption = {
   id: string;
+  // Emojis já vão embutidos no texto pra simplificar.
+  label: GText;
+  description?: GText;
+};
+
+type SliderUnit = {
+  id: string;
   label: string;
-  description?: string;
-  image?: string;
+  min: number;
+  max: number;
+  default: number;
+  suffix: string;
+};
+
+type StepBase = {
+  id: string;
+  title: GText;
+  subtitle?: GText;
+  note?: GText; // observação pequena exibida abaixo do conteúdo
+  onlyFor?: Gender; // etapa exclusiva de um gênero
 };
 
 export type QuizStep =
-  | {
-      id: string;
-      type: "single";
-      title: string;
-      subtitle?: string;
-      options: QuizOption[];
-    }
-  | {
-      id: string;
-      type: "text" | "phone";
-      title: string;
-      subtitle?: string;
-      placeholder: string;
-      required?: boolean;
-    };
+  | (StepBase & { type: "single"; options: QuizOption[] })
+  | (StepBase & { type: "multi"; options: QuizOption[] })
+  | (StepBase & { type: "text" | "phone"; placeholder: string; required?: boolean })
+  | (StepBase & { type: "slider"; units: SliderUnit[] })
+  | (StepBase & { type: "info"; body: GText; cta: GText });
 
 type FunnelConfig = {
   brandName: string;
   logoUrl: string;
   leadEndpoint: string;
-
-  // Pixel do Facebook: cole aqui o ID do seu Pixel (ex.: "1234567890").
-  // Deixe vazio para desativar o rastreamento em ambiente de testes.
   facebookPixelId: string;
 
-  // Checkout: link da plataforma (Hotmart/Kiwify/etc) onde a compra é feita.
-  // É o destino do CTA principal. Deixe vazio para cair no WhatsApp.
+  // Destino do CTA final (VSL / página de oferta / checkout).
   checkoutUrl: string;
 
-  // WhatsApp usado como canal de DÚVIDAS (CTA secundário), não para pagar.
-  whatsapp: {
-    // Número em formato internacional, só dígitos: 55 + DDD + número.
-    // CONFIRMAR o número público do bot. (Ex.: "5588992972504")
-    number: string;
-    // Mensagem pré-preenchida. {nome} é substituído pela resposta do lead.
-    message: string;
-  };
+  // Profissional responsável (usado na prova de autoridade e no rodapé legal).
+  professional: { name: string; crn: string };
+
+  // Nº REAL de pessoas atendidas. Deixe vazio até ter o número confirmado.
+  // {n} no texto da etapa "possibilidade" usa esse valor.
+  socialProofCount: string;
+
+  // Rodapé de compliance exibido nas telas de promessa.
+  complianceFooter: string;
+
+  whatsapp: { number: string; message: string };
 
   texts: {
     next: string;
@@ -50,57 +66,66 @@ type FunnelConfig = {
     submitting: string;
     backLabel: string;
     required: string;
-    analyzing: string;
+    multiHint: string;
     errorTitle: string;
     errorText: string;
   };
 
-  // Tela de resultado: diagnóstico personalizado + oferta de venda.
+  // Tela inicial: escolha do caminho (homem / mulher).
+  gender: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    options: { id: Gender; label: string }[];
+  };
+
+  // Tela de loading ("analisando suas respostas").
+  loading: {
+    title: GText; // {nome}
+    items: string[];
+  };
+
+  // Captura do WhatsApp (depois do loading).
+  capture: {
+    title: GText; // {nome}
+    subtitle: string;
+    placeholder: string;
+    cta: string;
+    secure: string;
+  };
+
+  // Página de resultado: diagnóstico honesto + oferta.
   result: {
-    // {nome} é substituído pela resposta do lead.
-    headline: string;
-    intro: string;
-    // Frases montadas a partir das respostas (chave = id da opção escolhida).
-    objetivoFeedback: Record<string, string>;
-    desafioFeedback: Record<string, string>;
-    // Linha do tempo: jornada projetada nos próximos 90 dias.
-    timeline: {
-      title: string;
-      // Linha de abertura por objetivo (chave = id da opção).
-      subtitleByObjetivo: Record<string, string>;
-      steps: { period: string; text: string }[];
-    };
-    // Quebra de objeção: "será que funciona pra mim?".
-    objections: {
-      title: string;
-      items: { q: string; a: string }[];
-    };
-    // Mecanismo em 3 passos.
+    headline: GText; // {nome}
+    subhead: string;
+    // Bloco de diagnóstico por objetivo (chave = id da opção de objetivo).
+    diagnosisByObjetivo: Record<string, string>;
+    // Eco condicional: reescreve a resposta da etapa de identificação.
+    echoByIdentificacao: Record<string, string>;
+    closingTitle: string;
+    closingBullets: GText[];
+    closingNote: string;
+    // Passo a passo de como funciona o método.
     howItWorks: {
       title: string;
       steps: { title: string; text: string }[];
     };
-    // Prova social: transformações reais de alunos.
+    // Empilhamento de valor: tudo o que a pessoa recebe.
+    offer: {
+      title: string;
+      subtitle: string;
+      includes: string[];
+      guaranteeTitle: string;
+      guarantee: string;
+      scarcity: string;
+    };
+    cta: string;
+    ctaNote: string;
     social: {
       title: string;
       subtitle: string;
-      images: string[];
+      images: { homem: string[]; mulher: string[] };
       disclaimer: string;
-    };
-    offer: {
-      badge: string;
-      title: string;
-      valueAnchor: string;
-      items: string[];
-      bonusTitle: string;
-      bonuses: string[];
-      delivery: string;
-      priceFrom: string;
-      priceTo: string;
-      discountLabel: string;
-      ctaLabel: string;
-      whatsappLabel: string;
-      guarantee: string;
     };
   };
 
@@ -108,264 +133,445 @@ type FunnelConfig = {
 };
 
 export const CONFIG: FunnelConfig = {
-  brandName: "Nutrido Para Sempre",
-
-  // Deixe vazio para usar apenas o nome da marca. Coloque a URL da logo se tiver.
+  brandName: "Método Nutrido Para Sempre",
   logoUrl: "",
-
   leadEndpoint: "/api/leads",
-
-  // ID do Pixel do Facebook.
   facebookPixelId: "1546268713221763",
 
-  // Link do checkout (Kirvano). Vazio = cai no WhatsApp.
+  // Troque pelo link da sua VSL / página de oferta.
   checkoutUrl: "https://pay.kirvano.com/dc3ecc05-21a3-486f-bc0e-de24aae0b281",
 
+  professional: { name: "João Victor Silva", crn: "CRN 15643" },
+
+  // PREENCHA com o número REAL de atendimentos quando confirmado.
+  socialProofCount: "",
+
+  complianceFooter:
+    "Resultados variam de pessoa para pessoa. Acompanhamento nutricional individualizado. João Victor Silva, CRN 15643.",
+
   whatsapp: {
-    // SUBSTITUA pelo número público do WhatsApp do bot (formato internacional).
     number: "5588992972504",
-    message:
-      "Oi! Fiz o quiz e quero GARANTIR minha dieta personalizada do Método Nutrido Para Sempre pela promoção de R$ 39,90. Meu nome é {nome}.",
+    message: "Oi! Fiz o quiz e quero meu plano personalizado. Meu nome é {nome}.",
   },
 
   texts: {
     next: "Continuar",
-    submit: "Ver meu resultado",
+    submit: "VER MEU DIAGNÓSTICO",
     submitting: "Enviando...",
     backLabel: "Voltar",
-    required: "Selecione ou preencha uma resposta para continuar.",
-    analyzing: "Analisando suas respostas e montando seu plano...",
+    required: "Selecione uma opção para continuar.",
+    multiHint: "Pode marcar mais de uma",
     errorTitle: "Não foi possível enviar",
     errorText: "Tente novamente em alguns instantes.",
   },
 
+  gender: {
+    eyebrow: "Diagnóstico gratuito · 1 minuto",
+    title: "Vamos montar o seu diagnóstico",
+    subtitle: "Primeiro, me diz pra quem é o plano:",
+    options: [
+      { id: "homem", label: "👨 Homem" },
+      { id: "mulher", label: "👩 Mulher" },
+    ],
+  },
+
+  loading: {
+    title: "Analisando suas respostas, {nome}...",
+    items: [
+      "Entendendo seu objetivo e sua rotina",
+      "Identificando o que mais te trava",
+      "Montando seu diagnóstico personalizado",
+    ],
+  },
+
+  capture: {
+    title: "{nome}, seu diagnóstico está pronto. Pra onde envio?",
+    subtitle: "Vou te mandar no WhatsApp, sem spam. Falo eu mesmo com você.",
+    placeholder: "(00) 00000-0000",
+    cta: "VER MEU DIAGNÓSTICO",
+    secure: "🔒 Seus dados estão protegidos.",
+  },
+
   result: {
-    headline: "{nome}, seu plano personalizado está pronto para ser montado",
-    intro: "Com base nas suas respostas, foi isso que identificamos:",
-    objetivoFeedback: {
-      emagrecer:
-        "Seu foco é emagrecer com saúde — sem passar fome e sem dieta maluca.",
-      "ganhar-massa":
-        "Seu foco é ganhar massa muscular com a alimentação certa para evoluir.",
-      reeducacao:
-        "Você quer reeducação alimentar de verdade e dar adeus ao efeito sanfona.",
-      saude: "Você quer mais disposição e saúde no seu dia a dia.",
+    headline: "{nome}, aqui está o seu diagnóstico 🎯",
+    subhead:
+      "O que mais trava o seu resultado não é força de vontade. É método.",
+    diagnosisByObjetivo: {
+      "secar-barriga":
+        "Você quer secar a barriga, mas vinha tentando com dieta genérica, e barriga não responde a “comer menos de qualquer jeito”. Responde a um plano ajustado ao seu corpo, com constância. É isso que vamos fazer.",
+      leve:
+        "Boa parte do que te incomoda é inchaço e retenção, não só gordura. Com a alimentação certa (e os alimentos certos pra VOCÊ), o corpo desincha e o resultado aparece de forma sustentável.",
+      manter:
+        "Seu histórico mostra o clássico efeito sanfona: perde e volta. O segredo não é dieta nova, é um método que você consiga manter. Foco total em constância e preservar massa magra.",
+      bem:
+        "Seu corpo está pedindo mais energia e saúde, não sofrimento. Vamos ajustar a alimentação pra você se sentir bem todos os dias, e a estética vem como consequência.",
     },
-    desafioFeedback: {
-      "nao-sei-comer":
-        "Como você sente que não sabe o que comer, sua dieta vem com cada refeição definida — sem achismo.",
-      "falta-tempo":
-        "Como seu tempo é curto, montamos um plano prático, com opções rápidas e guia de compras pronto.",
-      "dietas-genericas":
-        "Cardápios genéricos não funcionaram porque não eram feitos pra você. O seu é 100% personalizado: seus gostos e sua rotina.",
-      constancia:
-        "Para resolver a falta de constância, você tem 1 mês de suporte e ajustes nos 7 primeiros dias — você não fica sozinho(a).",
+    echoByIdentificacao: {
+      "tenho-plano":
+        "Você mesmo disse: com o plano certo, você consegue. É exatamente isso que vou te entregar.",
+      "sei-nao-mantenho":
+        "Você disse que sabe o que fazer, mas não mantém. O problema nunca foi conhecimento, é ter um método que cabe na sua rotina.",
+      metabolismo:
+        "Você sente o metabolismo mais lento, por isso o plano é ajustado ao seu corpo, pra destravar o resultado.",
+      acompanhamento:
+        "Você funciona melhor com acompanhamento, e é assim que eu trabalho: perto de você.",
+      "depois-40":
+        "Depois dos 40 fica diferente, não impossível. O plano respeita a sua fase pra você voltar a evoluir.",
     },
-    timeline: {
-      title: "Você já começa hoje mesmo",
-      subtitleByObjetivo: {
-        emagrecer: "Nada de esperar meses pra começar a emagrecer com saúde:",
-        "ganhar-massa": "Nada de esperar meses pra começar a ganhar massa:",
-        reeducacao: "Nada de esperar meses pra mudar sua alimentação:",
-        saude: "Nada de esperar meses pra ter mais disposição:",
-      },
-      steps: [
-        {
-          period: "Hoje",
-          text: "Você garante seu plano e preenche a anamnese com seus gostos e sua rotina.",
-        },
-        {
-          period: "Em até 24h",
-          text: "Sua dieta 100% personalizada chega direto no seu WhatsApp.",
-        },
-        {
-          period: "Já nos primeiros dias",
-          text: "Você sabe exatamente o que comer — sem improviso e sem cardápio genérico.",
-        },
-      ],
-    },
-    objections: {
-      title: "Será que funciona pra mim?",
-      items: [
-        {
-          q: "Tenho uma rotina muito corrida",
-          a: "A dieta é montada pra caber na sua rotina, com opções práticas e rápidas.",
-        },
-        {
-          q: "Já tentei de tudo e não funcionou",
-          a: "Cardápios genéricos não funcionam. O seu é feito a partir dos seus gostos e da sua realidade.",
-        },
-        {
-          q: "Não sei (ou não gosto de) cozinhar",
-          a: "Você recebe o guia de compras e opções simples — nada de receita complicada.",
-        },
-        {
-          q: "Tenho restrição ou alimentos que não gosto",
-          a: "Você informa tudo na anamnese e a equipe monta respeitando suas restrições e preferências.",
-        },
-      ],
-    },
+    closingTitle: "O que muda o jogo no seu caso:",
+    closingBullets: [
+      "✔️ Cardápio montado pro seu objetivo, sua rotina e o que você gosta de comer",
+      "✔️ Foco em constância: emagrecer e MANTER, sem efeito sanfona",
+      "✔️ Feito por nutricionista de verdade (CRN 15643), não por robô nem fórmula pronta",
+    ],
+    closingNote:
+      "Emagrecimento saudável é com consistência, não com milagre de 15 dias. E é assim que eu vou te ajudar.",
     howItWorks: {
-      title: "Como funciona",
+      title: "Como funciona, passo a passo",
       steps: [
         {
-          title: "Você preenche a anamnese",
-          text: "Conta seus gostos, sua rotina e seu objetivo no link que recebe após a compra.",
+          title: "Você preenche sua anamnese",
+          text: "Conta sua rotina, seus horários, o que você gosta de comer e o que não pode. Leva poucos minutos e é o que deixa o plano realmente seu.",
         },
         {
-          title: "Nossa equipe monta sua dieta",
-          text: "Um plano 100% personalizado, feito pra você — não é cardápio pronto da internet.",
+          title: "Eu monto seu plano sob medida",
+          text: "Eu mesmo, nutricionista (CRN 15643), monto seu cardápio pro seu objetivo e a sua realidade. Nada de PDF genérico nem fórmula pronta da internet.",
         },
         {
-          title: "Você recebe em até 24h",
-          text: "A dieta chega no seu WhatsApp, com 1 mês de suporte e ajustes nos 7 primeiros dias.",
+          title: "Você recebe no WhatsApp e já começa",
+          text: "Seu plano chega organizado e fácil de seguir, com lista de compras pronta e substituições pra você não enjoar nem ficar perdido.",
+        },
+        {
+          title: "A gente ajusta e mantém juntos",
+          text: "Acompanhamento de perto pra corrigir a rota e manter a constância. É a constância, não o sacrifício, que traz o resultado que fica.",
         },
       ],
-    },
-    social: {
-      title: "Transformações reais de quem seguiu o plano",
-      subtitle:
-        "Alunos do Método Nutrido Para Sempre que mudaram a alimentação e a rotina.",
-      images: [
-        "/transformacoes/7.webp",
-        "/transformacoes/1.webp",
-        "/transformacoes/2.webp",
-        "/transformacoes/3.webp",
-        "/transformacoes/4.webp",
-        "/transformacoes/5.webp",
-        "/transformacoes/6.webp",
-        "/transformacoes/8.webp",
-        "/transformacoes/9.webp",
-        "/transformacoes/10.webp",
-      ],
-      disclaimer:
-        "Resultados variam de pessoa para pessoa e dependem do comprometimento individual.",
     },
     offer: {
-      badge: "Promo de inauguração",
-      title: "Método Nutrido Para Sempre",
-      valueAnchor:
-        "Plano feito sob medida pela nossa equipe — não é cardápio genérico de internet.",
-      items: [
-        "Dieta 100% personalizada, feita pela nossa equipe",
-        "Guia de compras + materiais de apoio",
-        "1 rodada de ajustes nos 7 primeiros dias",
-        "Suporte por WhatsApp durante 30 dias",
+      title: "O que você recebe",
+      subtitle: "Um método completo pra emagrecer e manter, feito pra você.",
+      includes: [
+        "📋 Plano alimentar 100% personalizado pro seu objetivo e a sua rotina",
+        "🛒 Lista de compras pronta e guia de substituições de alimentos",
+        "💬 Acompanhamento por WhatsApp comigo, de verdade (não é robô)",
+        "🔁 Ajustes sempre que precisar, pra não virar só mais uma tentativa",
+        "🍽️ Estratégia pra dar conta da vida real: trabalho, eventos e fim de semana",
       ],
-      // SUGESTÃO de bônus — confirme/ajuste conforme o que vocês entregam de verdade.
-      bonusTitle: "E ainda leva de bônus:",
-      bonuses: [
-        "Lista de substituições de alimentos",
-        "Guia de receitas práticas",
-        "Acesso ao grupo de acompanhamento",
-      ],
-      delivery:
-        "Após o pagamento você recebe o link da anamnese, preenche e em até 24h sua dieta chega no WhatsApp.",
-      priceFrom: "R$ 89,90",
-      priceTo: "R$ 39,90",
-      discountLabel: "-56%",
-      ctaLabel: "Quero garantir por R$ 39,90",
-      whatsappLabel: "Prefere tirar uma dúvida antes? Fale no WhatsApp",
+      guaranteeTitle: "O risco é meu, não seu",
       guarantee:
-        "Compra 100% segura no checkout. Garantia de 7 dias — não gostou, devolvemos seu dinheiro.",
+        "Meu compromisso é com o seu resultado, não com te empurrar mais uma dieta. Você segue o plano com suporte e, se precisar de ajuste, a gente ajusta até fazer sentido pra você.",
+      scarcity:
+        "Atendo um número limitado de pessoas por mês pra manter a qualidade do acompanhamento individual. Por isso pode fechar a qualquer momento.",
+    },
+    cta: "QUERO MEU PLANO PERSONALIZADO →",
+    ctaNote: "Leva menos de 2 minutos pra garantir o seu.",
+    social: {
+      title: "Resultados reais de quem seguiu o método",
+      subtitle: "Pessoas com a mesma rotina que a sua que mudaram a alimentação.",
+      images: {
+        homem: [
+          "/transformacoes/11.png",
+          "/transformacoes/1.webp",
+          "/transformacoes/2.webp",
+          "/transformacoes/4.webp",
+          "/transformacoes/7.webp",
+        ],
+        mulher: [
+          "/transformacoes/12.png",
+          "/transformacoes/13.png",
+          "/transformacoes/3.webp",
+          "/transformacoes/5.webp",
+          "/transformacoes/6.webp",
+          "/transformacoes/8.webp",
+          "/transformacoes/9.webp",
+          "/transformacoes/10.webp",
+        ],
+      },
+      disclaimer:
+        "Imagens reais de alunos, usadas com autorização. Resultados variam de pessoa para pessoa.",
     },
   },
 
   steps: [
     {
+      id: "nome",
+      type: "text",
+      title: "Como posso te chamar?",
+      subtitle: "Vou personalizar tudo no seu nome.",
+      placeholder: "Seu primeiro nome",
+      required: true,
+    },
+    {
+      id: "classificacao",
+      type: "single",
+      title: "Como você classificaria seu corpo hoje?",
+      options: [
+        { id: "muito-acima", label: "Muito acima do peso" },
+        {
+          id: "pouco-acima",
+          label: {
+            homem: "Um pouco acima do peso, barriga crescendo",
+            mulher: "Um pouco acima do peso",
+          },
+        },
+        {
+          id: "falso-magro",
+          label: {
+            homem: "Falso magro: barriga aparece, mas o resto é ok",
+            mulher: "Falsa magra: barriga aparece e não me sinto bem",
+          },
+        },
+        {
+          id: "secar",
+          label: {
+            homem: "Peso razoável, mas quero secar a barriga",
+            mulher: "Peso ok, mas quero secar a barriga",
+          },
+        },
+      ],
+    },
+    {
       id: "objetivo",
       type: "single",
-      title: "Qual é o seu principal objetivo hoje?",
-      subtitle: "Sua dieta será montada a partir da sua resposta.",
+      title: "Qual é o seu maior objetivo agora?",
       options: [
         {
-          id: "emagrecer",
-          label: "Emagrecer",
-          description: "Perder peso de forma saudável e sustentável.",
+          id: "secar-barriga",
+          label: {
+            homem: "🔥 Secar a barriga de vez",
+            mulher: "🔥 Perder a barriga de vez",
+          },
         },
         {
-          id: "ganhar-massa",
-          label: "Ganhar massa muscular",
-          description: "Definir e construir músculos com a alimentação certa.",
+          id: "leve",
+          label: {
+            homem: "💪 Perder gordura e ganhar definição",
+            mulher: "💧 Desinchar e me sentir mais leve",
+          },
         },
         {
-          id: "reeducacao",
-          label: "Reeducação alimentar",
-          description: "Criar hábitos que duram e parar com o efeito sanfona.",
+          id: "manter",
+          label: {
+            homem: "⚖️ Emagrecer sem perder massa muscular",
+            mulher: "⚖️ Emagrecer e não engordar de volta",
+          },
+        },
+        {
+          id: "bem",
+          label: {
+            homem: "⚡ Melhorar minha saúde e energia",
+            mulher: "🪞 Me sentir bem com meu corpo de novo",
+          },
+        },
+      ],
+    },
+    {
+      id: "corpo-dos-sonhos",
+      type: "single",
+      onlyFor: "mulher",
+      title: "Qual é o seu corpo dos sonhos?",
+      options: [
+        { id: "magro", label: "Magro" },
+        { id: "tonificado", label: "Tonificado" },
+        { id: "curvilineo", label: "Curvilíneo" },
+        { id: "medio", label: "Médio" },
+      ],
+    },
+    {
+      id: "identificacao",
+      type: "single",
+      title: "Com qual frase você mais se identifica?",
+      subtitle: { homem: "(seja honesto)", mulher: "(seja honesta)" },
+      options: [
+        { id: "tenho-plano", label: "💪 Se eu tiver o plano certo, eu consigo" },
+        { id: "sei-nao-mantenho", label: "😩 Sei o que fazer, mas não mantenho" },
+        { id: "metabolismo", label: "🐢 Sinto que meu metabolismo é mais lento" },
+        {
+          id: "acompanhamento",
+          label: "👀 Funciono melhor com alguém me acompanhando",
+        },
+        { id: "depois-40", label: "😮‍💨 Depois dos 40 ficou mais difícil" },
+      ],
+    },
+    {
+      id: "impacto",
+      type: "multi",
+      title: "Como o seu peso tem impactado a sua vida?",
+      options: [
+        {
+          id: "autoestima",
+          label: {
+            homem: "Minha autoestima e confiança estão afetadas",
+            mulher: "Minha autoestima está baixa",
+          },
+        },
+        {
+          id: "cansaco",
+          label: {
+            homem: "Me sinto cansado e sem disposição",
+            mulher: "Me sinto cansada e sem disposição",
+          },
         },
         {
           id: "saude",
-          label: "Mais disposição e saúde",
-          description: "Comer melhor para ter energia no dia a dia.",
+          label: {
+            homem: "Tenho preocupação com a saúde (pressão, exames…)",
+            mulher: "Tenho exames / pressão alterados",
+          },
+        },
+        {
+          id: "corpo",
+          label: {
+            homem: "Não me sinto bem sem camisa",
+            mulher: "Evito certas roupas ou aparecer em fotos",
+          },
+        },
+        {
+          id: "melhor",
+          label: {
+            homem: "Sinto que não estou no meu melhor",
+            mulher: "Queria me sentir mais confiante comigo",
+          },
         },
       ],
     },
     {
-      id: "desafio",
+      id: "tentativas",
       type: "single",
-      title: "O que mais te atrapalha na alimentação?",
-      subtitle: "Assim entendemos como te ajudar de verdade.",
+      title: "Você já tentou emagrecer antes e não teve o resultado que queria?",
+      options: [
+        { id: "dieta", label: "Sim, fiz dieta mas a barriga não saiu" },
+        { id: "treino", label: "Sim, treinei muito e o resultado foi mínimo" },
+        { id: "voltou", label: "Sim, perdi peso mas voltou tudo" },
+        { id: "nunca", label: "Nunca segui um método de verdade" },
+      ],
+    },
+    {
+      id: "consistencia",
+      type: "single",
+      title: "Você sente que se esforça mas não vê resultado proporcional?",
+      options: [
+        { id: "pouco", label: "Sim, faço o que dá e quase não muda" },
+        { id: "devagar", label: "Muda, mas muito devagar" },
+        { id: "nunca", label: "Nunca consegui ser consistente" },
+      ],
+    },
+    {
+      id: "acolhimento",
+      type: "info",
+      title: "A real: a culpa não é sua.",
+      body: "A maioria das dietas falha porque é genérica e não cabe na sua vida. Quando o plano é feito pra VOCÊ, manter deixa de ser sofrimento. É exatamente isso que eu faço.",
+      cta: "Continuar",
+    },
+    {
+      id: "peso",
+      type: "slider",
+      title: "Qual é o seu peso atual?",
+      units: [
+        { id: "kg", label: "kg", min: 40, max: 200, default: 85, suffix: "kg" },
+        { id: "lb", label: "lb", min: 88, max: 440, default: 187, suffix: "lb" },
+      ],
+    },
+    {
+      id: "altura",
+      type: "slider",
+      title: "Qual é a sua altura?",
+      units: [
+        { id: "cm", label: "cm", min: 140, max: 220, default: 170, suffix: "cm" },
+        { id: "pol", label: "pol", min: 55, max: 87, default: 67, suffix: "pol" },
+      ],
+    },
+    {
+      id: "caneta",
+      type: "single",
+      title:
+        "Você usa ou já usou alguma caneta emagrecedora (Ozempic, Mounjaro, Wegovy…)?",
+      note: "Se usa ou pensa em usar, te oriento como a alimentação potencializa o efeito e protege seu músculo. A dose é sempre com o médico.",
+      options: [
+        { id: "uso", label: "💉 Uso atualmente" },
+        { id: "parei", label: "⏸️ Já usei e parei" },
+        { id: "penso", label: "🤔 Penso em usar" },
+        { id: "nao", label: "❌ Não uso nem pretendo" },
+      ],
+    },
+    {
+      id: "habitos",
+      type: "multi",
+      title: "Como são seus hábitos hoje?",
+      options: [
+        { id: "alcool", label: "🍺 Bebo álcool com frequência" },
+        { id: "besteira", label: "🍟 Como muita besteira / comida pesada" },
+        { id: "parado", label: "📱 Fico muito tempo parado" },
+        { id: "sono", label: "😴 Durmo mal / tenho estresse" },
+        { id: "pratico", label: "✅ Prefiro praticidade no dia a dia" },
+      ],
+    },
+    {
+      id: "meta",
+      type: "single",
+      title: "Quanto você gostaria de eliminar?",
+      options: [
+        { id: "0-2", label: "0 a 2 kg" },
+        { id: "2-4", label: "2 a 4 kg" },
+        { id: "4-6", label: "4 a 6 kg" },
+        { id: "6+", label: "6 kg ou mais" },
+      ],
+    },
+    {
+      id: "possibilidade",
+      type: "info",
+      title: "Sua meta é possível com método e constância.",
+      body: {
+        homem:
+          "Já ajudei {n} pessoas a comerem melhor e emagrecerem de forma que se mantém. Você é o próximo.",
+        mulher:
+          "Já ajudei {n} pessoas a comerem melhor e emagrecerem de forma que se mantém. Você é a próxima.",
+      },
+      cta: "Continuar teste",
+    },
+    {
+      id: "corpo-desejado",
+      type: "single",
+      title: "Qual corpo você quer ter?",
       options: [
         {
-          id: "nao-sei-comer",
-          label: "Não sei o que comer",
-          description: "Fico perdido(a) na hora de montar as refeições.",
+          id: "definido",
+          label: {
+            homem: "Definido: sem barriga, com músculo visível",
+            mulher: "Definida: barriga lisa e corpo tonificado",
+          },
         },
         {
-          id: "falta-tempo",
-          label: "Falta de tempo pra cozinhar",
-          description: "Minha rotina é corrida e complica tudo.",
+          id: "leve",
+          label: { homem: "Mais magro e leve", mulher: "Mais magra e leve" },
         },
-        {
-          id: "dietas-genericas",
-          label: "Dietas genéricas não funcionam",
-          description: "Já tentei cardápios prontos e não me adaptei.",
-        },
-        {
-          id: "constancia",
-          label: "Falta de constância",
-          description: "Começo animado(a) mas não consigo manter.",
-        },
+        { id: "completa", label: "Transformação completa" },
       ],
     },
     {
-      id: "momento",
+      id: "projecao",
       type: "single",
-      title: "Quando você quer começar?",
-      subtitle: "Sem compromisso — é só pra entender o seu momento.",
+      title: "O que te motiva a mudar agora?",
       options: [
-        {
-          id: "agora",
-          label: "Quero começar agora",
-          description: "Estou decidido(a) a mudar.",
-        },
-        {
-          id: "em-breve",
-          label: "Nas próximas semanas",
-          description: "Quero me organizar primeiro.",
-        },
-        {
-          id: "pesquisando",
-          label: "Só pesquisando",
-          description: "Ainda estou avaliando.",
-        },
+        { id: "confianca", label: "🎯 Voltar a me sentir confiante" },
+        { id: "saude", label: "🏥 Cuidar da minha saúde" },
+        { id: "roupa", label: "👕 Me sentir bem com qualquer roupa" },
+        { id: "melhor", label: "💪 Chegar no meu melhor" },
       ],
     },
     {
-      id: "nome",
-      type: "text",
-      title: "Como podemos te chamar?",
-      subtitle: "Vamos usar seu nome no atendimento.",
-      placeholder: "Digite seu nome",
-      required: true,
-    },
-    {
-      id: "telefone",
-      type: "phone",
-      title: "Qual é o seu WhatsApp?",
-      subtitle: "É por aqui que você recebe sua dieta personalizada.",
-      placeholder: "(00) 00000-0000",
-      required: true,
+      id: "compromisso",
+      type: "single",
+      title: {
+        homem:
+          "Você está pronto pra seguir um plano que cabe na sua rotina e fazer ele funcionar?",
+        mulher:
+          "Você está pronta pra seguir um plano que cabe na sua rotina e fazer ele funcionar?",
+      },
+      options: [
+        { id: "sim", label: "Sim, quero começar" },
+        { id: "ajuda", label: "Quero, mas preciso de ajuda pra manter" },
+      ],
     },
   ],
 };
