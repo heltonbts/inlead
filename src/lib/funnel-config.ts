@@ -115,6 +115,12 @@ type FunnelConfig = {
       title: string;
       subtitle: string;
       includes: string[];
+      // Bloco de preço da tela de oferta.
+      priceBadge: string; // selo acima do preço (ex.: "Oferta desta página")
+      priceFrom: string; // preço âncora riscado (ex.: "R$ 197")
+      price: string; // preço final (ex.: "R$ 97")
+      priceInstallment: string; // parcelamento (ex.: "ou 12x de R$ 9,70")
+      priceNote: string;
       guaranteeTitle: string;
       guarantee: string;
       scarcity: string;
@@ -129,6 +135,22 @@ type FunnelConfig = {
     };
   };
 
+  // Página de agradecimento pós-compra (rota /obrigado).
+  thankYou: {
+    bar: string; // barra fixa no topo ("Obrigado pela compra")
+    badge: string;
+    title: string;
+    subtitle: string;
+    stepsTitle: string;
+    steps: { title: string; text: string }[];
+    whatsappCta: string;
+    whatsappNote: string;
+    // Mensagem já preenchida no WhatsApp confirmando a compra.
+    whatsappMessage: string;
+    purchaseValue: number; // valor enviado ao Pixel (evento Purchase)
+    footer: string;
+  };
+
   steps: QuizStep[];
 };
 
@@ -139,7 +161,7 @@ export const CONFIG: FunnelConfig = {
   facebookPixelId: "1546268713221763",
 
   // Troque pelo link da sua VSL / página de oferta.
-  checkoutUrl: "https://pay.kirvano.com/dc3ecc05-21a3-486f-bc0e-de24aae0b281",
+  checkoutUrl: "https://pay.kiwify.com.br/QUYLcs1",
 
   professional: { name: "João Victor Silva", crn: "CRN 15643" },
 
@@ -150,7 +172,7 @@ export const CONFIG: FunnelConfig = {
     "Resultados variam de pessoa para pessoa. Acompanhamento nutricional individualizado. João Victor Silva, CRN 15643.",
 
   whatsapp: {
-    number: "5588992972504",
+    number: "5588993274600",
     message: "Oi! Fiz o quiz e quero meu plano personalizado. Meu nome é {nome}.",
   },
 
@@ -167,7 +189,7 @@ export const CONFIG: FunnelConfig = {
 
   gender: {
     eyebrow: "Diagnóstico gratuito · 1 minuto",
-    title: "Vamos montar o seu diagnóstico",
+    title: "Descubra por que sua barriga não sai mesmo fazendo dieta",
     subtitle: "Primeiro, me diz pra quem é o plano:",
     options: [
       { id: "homem", label: "👨 Homem" },
@@ -257,6 +279,11 @@ export const CONFIG: FunnelConfig = {
         "🔁 Ajustes sempre que precisar, pra não virar só mais uma tentativa",
         "🍽️ Estratégia pra dar conta da vida real: trabalho, eventos e fim de semana",
       ],
+      priceBadge: "🔥 Oferta exclusiva desta página",
+      priceFrom: "R$ 197",
+      price: "R$ 97",
+      priceInstallment: "ou 12x de R$ 9,70 no cartão",
+      priceNote: "Pagamento único · acesso imediato após a compra",
       guaranteeTitle: "O risco é meu, não seu",
       guarantee:
         "Meu compromisso é com o seu resultado, não com te empurrar mais uma dieta. Você segue o plano com suporte e, se precisar de ajuste, a gente ajusta até fazer sentido pra você.",
@@ -282,7 +309,6 @@ export const CONFIG: FunnelConfig = {
           "/transformacoes/3.webp",
           "/transformacoes/5.webp",
           "/transformacoes/6.webp",
-          "/transformacoes/8.webp",
           "/transformacoes/9.webp",
           "/transformacoes/10.webp",
         ],
@@ -290,6 +316,40 @@ export const CONFIG: FunnelConfig = {
       disclaimer:
         "Imagens reais de alunos, usadas com autorização. Resultados variam de pessoa para pessoa.",
     },
+  },
+
+  thankYou: {
+    bar: "✅ Obrigado pela sua compra!",
+    badge: "Compra confirmada",
+    title: "Obrigado por acreditar no método que já mudou várias vidas 🙏",
+    subtitle:
+      "Sua vaga está garantida. Agora falta só 1 passo pra eu começar a montar o seu plano personalizado.",
+    stepsTitle: "Seu próximo passo, bem rapidinho:",
+    steps: [
+      {
+        title: "Clique no botão do WhatsApp abaixo",
+        text: "Ele já abre uma conversa comigo, com a mensagem pronta. É só enviar.",
+      },
+      {
+        title: "Confirme sua compra na conversa",
+        text: "Assim eu identifico você na hora e libero o seu acesso na sequência.",
+      },
+      {
+        title: "Responda a anamnese que eu te enviar",
+        text: "São perguntas rápidas sobre sua rotina, seus horários e o que você gosta de comer. É o que deixa o plano realmente seu.",
+      },
+      {
+        title: "Receba seu plano e comece",
+        text: "Eu monto seu cardápio sob medida e te entrego organizado no WhatsApp, já com lista de compras.",
+      },
+    ],
+    whatsappCta: "CONFIRMAR COMPRA NO WHATSAPP",
+    whatsappNote: "Atendimento comigo mesmo, de verdade. Não é robô.",
+    whatsappMessage:
+      "Oi, João! Acabei de comprar o Método Nutrido Para Sempre. Quero confirmar minha compra e começar a anamnese. 🙌",
+    purchaseValue: 97,
+    footer:
+      "Resultados variam de pessoa para pessoa. Acompanhamento nutricional individualizado. João Victor Silva, CRN 15643.",
   },
 
   steps: [

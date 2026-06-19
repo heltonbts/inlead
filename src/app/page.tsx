@@ -13,6 +13,17 @@ declare global {
   }
 }
 
+// Prova social misturada: intercala fotos de homem e mulher numa lista só.
+const SOCIAL_IMAGES: string[] = (() => {
+  const { homem, mulher } = CONFIG.result.social.images;
+  const mixed: string[] = [];
+  for (let i = 0; i < Math.max(homem.length, mulher.length); i++) {
+    if (homem[i]) mixed.push(homem[i]);
+    if (mulher[i]) mixed.push(mulher[i]);
+  }
+  return mixed;
+})();
+
 function track(event: string, params?: Record<string, unknown>) {
   if (typeof window !== "undefined" && typeof window.fbq === "function") {
     window.fbq("track", event, params);
@@ -77,8 +88,8 @@ function applyPhoneMask(value: string) {
 }
 
 // Strip rotativo de prova social (fotos reais) exibido no rodapé do quiz.
-function ProofTicker({ gender }: { gender: Gender }) {
-  const images = CONFIG.result.social.images[gender];
+function ProofTicker() {
+  const images = SOCIAL_IMAGES;
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -296,7 +307,7 @@ export default function Home() {
   const identificacaoId = answers.identificacao ?? "";
   const diagnosisText = CONFIG.result.diagnosisByObjetivo[objetivoId] ?? "";
   const echoText = CONFIG.result.echoByIdentificacao[identificacaoId] ?? "";
-  const socialImages = CONFIG.result.social.images[g];
+  const socialImages = SOCIAL_IMAGES;
 
   const showProgress = phase === "quiz";
 
@@ -537,7 +548,7 @@ export default function Home() {
             {step.note ? <p className="step-note">{pickText(step.note, g)}</p> : null}
             {message ? <p className="message">{message}</p> : null}
 
-            {gender ? <ProofTicker gender={gender} /> : null}
+            {gender ? <ProofTicker /> : null}
           </div>
         ) : null}
 
@@ -650,6 +661,9 @@ export default function Home() {
                   </figure>
                 ))}
               </div>
+              {socialImages.length > 3 ? (
+                <p className="social-swipe-hint">← arraste para ver mais →</p>
+              ) : null}
               <p className="social-disclaimer">{CONFIG.result.social.disclaimer}</p>
             </section>
 
@@ -669,6 +683,18 @@ export default function Home() {
               </div>
               <p className="offer-scarcity">⚠️ {CONFIG.result.offer.scarcity}</p>
             </section>
+
+            <div className="offer-price">
+              <span className="offer-price-badge">{CONFIG.result.offer.priceBadge}</span>
+              <span className="offer-price-from">
+                de <s>{CONFIG.result.offer.priceFrom}</s> por apenas
+              </span>
+              <span className="offer-price-value">{CONFIG.result.offer.price}</span>
+              <span className="offer-price-installment">
+                {CONFIG.result.offer.priceInstallment}
+              </span>
+              <span className="offer-price-note">{CONFIG.result.offer.priceNote}</span>
+            </div>
 
             {CONFIG.checkoutUrl ? (
               <a
