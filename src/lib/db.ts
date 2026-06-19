@@ -59,7 +59,8 @@ function ensureSchema(): Promise<void> {
 
 type UpsertInput = {
   id: string;
-  type: "start" | "step" | "result" | "checkout" | "whatsapp";
+  // "download" = baixou o material (reaproveita a coluna checkout_clicked).
+  type: "start" | "step" | "result" | "download" | "whatsapp";
   stepIndex: number;
   stepId: string | null;
   answers: Record<string, string>;
@@ -79,7 +80,7 @@ export async function upsertSession(input: UpsertInput): Promise<void> {
     )
     VALUES (
       ${input.id}, ${input.stepIndex}, ${input.stepId},
-      ${input.type === "result"}, ${input.type === "checkout"},
+      ${input.type === "result"}, ${input.type === "download"},
       ${input.type === "whatsapp"}, ${JSON.stringify(input.answers)}::jsonb,
       ${name}, ${phone}, ${input.userAgent}, ${input.ip}, now()
     )

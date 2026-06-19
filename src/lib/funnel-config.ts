@@ -110,6 +110,14 @@ type FunnelConfig = {
       title: string;
       steps: { title: string; text: string }[];
     };
+    // Entrega da isca: material em PDF pra pessoa baixar (substitui a oferta).
+    material: {
+      title: string;
+      subtitle: string;
+      fileUrl: string; // caminho do PDF em /public (ex.: /material.pdf) ou URL externa
+      cta: string;
+      note: string;
+    };
     // Empilhamento de valor: tudo o que a pessoa recebe.
     offer: {
       title: string;
@@ -268,6 +276,14 @@ export const CONFIG: FunnelConfig = {
           text: "Acompanhamento de perto pra corrigir a rota e manter a constância. É a constância, não o sacrifício, que traz o resultado que fica.",
         },
       ],
+    },
+    material: {
+      title: "Seu material está pronto 🎉",
+      subtitle:
+        "Baixe agora o material que vai te ajudar a destravar o seu resultado. Também enviei tudo no seu WhatsApp.",
+      fileUrl: "/material.pdf",
+      cta: "BAIXAR MEU MATERIAL (PDF)",
+      note: "É só clicar pra baixar. Qualquer dúvida, é só me chamar no WhatsApp.",
     },
     offer: {
       title: "O que você recebe",

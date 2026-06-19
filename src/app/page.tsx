@@ -30,6 +30,13 @@ function track(event: string, params?: Record<string, unknown>) {
   }
 }
 
+// Evento customizado do Pixel (ex.: download da isca, que não é evento padrão).
+function trackCustom(event: string, params?: Record<string, unknown>) {
+  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+    window.fbq("trackCustom", event, params);
+  }
+}
+
 function buzz() {
   if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
     navigator.vibrate(12);
@@ -667,48 +674,25 @@ export default function Home() {
               <p className="social-disclaimer">{CONFIG.result.social.disclaimer}</p>
             </section>
 
-            <section className="offer-block" aria-label={CONFIG.result.offer.title}>
-              <h2 className="block-title">{CONFIG.result.offer.title}</h2>
-              <p className="offer-subtitle">{CONFIG.result.offer.subtitle}</p>
-              <ul className="offer-includes">
-                {CONFIG.result.offer.includes.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <div className="offer-guarantee">
-                <span className="offer-guarantee-title">
-                  🛡️ {CONFIG.result.offer.guaranteeTitle}
-                </span>
-                <span className="offer-guarantee-text">{CONFIG.result.offer.guarantee}</span>
-              </div>
-              <p className="offer-scarcity">⚠️ {CONFIG.result.offer.scarcity}</p>
-            </section>
+            <section className="material-block" aria-label={CONFIG.result.material.title}>
+              <h2 className="block-title">{CONFIG.result.material.title}</h2>
+              <p className="material-subtitle">{CONFIG.result.material.subtitle}</p>
 
-            <div className="offer-price">
-              <span className="offer-price-badge">{CONFIG.result.offer.priceBadge}</span>
-              <span className="offer-price-from">
-                de <s>{CONFIG.result.offer.priceFrom}</s> por apenas
-              </span>
-              <span className="offer-price-value">{CONFIG.result.offer.price}</span>
-              <span className="offer-price-installment">
-                {CONFIG.result.offer.priceInstallment}
-              </span>
-              <span className="offer-price-note">{CONFIG.result.offer.priceNote}</span>
-            </div>
-
-            {CONFIG.checkoutUrl ? (
               <a
                 className="btn-primary cta-final"
-                href={CONFIG.checkoutUrl}
+                href={CONFIG.result.material.fileUrl}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => {
-                  track("InitiateCheckout");
-                  trackEvent("checkout");
+                  trackCustom("BaixouMaterial", { content_name: CONFIG.brandName });
+                  trackEvent("download");
                 }}
               >
-                {CONFIG.result.cta}
+                {CONFIG.result.material.cta}
               </a>
-            ) : null}
-            <p className="cta-note">{CONFIG.result.ctaNote}</p>
+              <p className="cta-note">{CONFIG.result.material.note}</p>
+            </section>
 
             <p className="compliance-footer">{CONFIG.complianceFooter}</p>
           </div>

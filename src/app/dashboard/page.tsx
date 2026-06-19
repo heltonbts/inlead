@@ -64,7 +64,7 @@ function furthestStage(session: Session): {
   label: string;
   kind: "checkout" | "offer" | "step";
 } {
-  if (session.checkoutClicked) return { label: "Foi pro plano", kind: "checkout" };
+  if (session.checkoutClicked) return { label: "Baixou o material", kind: "checkout" };
   if (session.reachedResult) return { label: "Viu o diagnóstico", kind: "offer" };
   const step = CONFIG.steps.find((s) => s.id === session.maxStepId);
   return { label: step ? labelForStep(step) : "Escolheu o caminho", kind: "step" };
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
               <span className="dash-kpi-extra">{pct(reachedResult)}% dos que entraram</span>
             </div>
             <div className="dash-kpi">
-              <span className="dash-kpi-label">Foram pro plano</span>
+              <span className="dash-kpi-label">Baixaram o material</span>
               <span className="dash-kpi-value">{checkout}</span>
               <span className="dash-kpi-extra">{pct(checkout)}% dos que entraram</span>
             </div>
@@ -203,7 +203,7 @@ export default async function DashboardPage() {
                     <div className="dash-person-tags">
                       <span className={`dash-badge is-${stage.kind}`}>{stage.label}</span>
                       {session.checkoutClicked ? (
-                        <span className="dash-badge is-checkout">Foi pro plano</span>
+                        <span className="dash-badge is-checkout">Baixou o material</span>
                       ) : null}
                     </div>
                   </div>
