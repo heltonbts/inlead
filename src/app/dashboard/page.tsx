@@ -79,9 +79,77 @@ function formatDate(iso: string): string {
   });
 }
 
-export default async function DashboardPage() {
-  const sessions = await getSessions();
+const TZ = "America/Sao_Paulo";
+
+// Data (YYYY-MM-DD) de um ISO no fuso de São Paulo.
+function spDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });
+}
+
+// Data de hoje (ou com deslocamento de dias) no fuso de São Paulo.
+function spToday(offsetDays = 0): string {
+  return new Date(Date.now() - offsetDays * 86_400_000).toLocaleDateString(
+    "en-CA",
+    { timeZone: TZ },
+  );
+}
+
+function formatDayLabel(ymd: string): string {
+  const [y, m, d] = ymd.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+
+  const isAll = firstParam(sp.range) === "all";
+  const onlyCompleted = firstParam(sp.completed) === "1";
+  const today = spToday();
+  const from = firstParam(sp.from) || today;
+  const to = firstParam(sp.to) || today;
+
+  const allSessions = await getSessions();
+
+  // Aplica os filtros: período (por padrão só hoje) e "chegou ao final".
+  let sessions = allSessions;
+  if (!isAll) {
+    sessions = sessions.filter((s) => {
+      const d = spDate(s.updatedAt);
+      return d >= from && d <= to;
+    });
+  }
+  if (onlyCompleted) {
+    sessions = sessions.filter((s) => Boolean(s.name) && Boolean(s.phone));
+  }
+
   const total = sessions.length;
+
+  // Monta querystrings dos atalhos preservando o "somente finalizados".
+  const buildHref = (params: Record<string, string>) => {
+    const merged = { ...params };
+    if (onlyCompleted) merged.completed = "1";
+    const qs = new URLSearchParams(merged).toString();
+    return qs ? `/dashboard?${qs}` : "/dashboard";
+  };
+
+  const isToday = !isAll && from === today && to === today;
+  const isLast7 = !isAll && from === spToday(6) && to === today;
+
+  const periodLabel = isAll
+    ? "Todo o período"
+    : from === to
+      ? formatDayLabel(from)
+      : `${formatDayLabel(from)} → ${formatDayLabel(to)}`;
 
   const reachedResult = sessions.filter((s) => s.reachedResult).length;
   const checkout = sessions.filter((s) => s.checkoutClicked).length;
@@ -108,13 +176,58 @@ export default async function DashboardPage() {
       <div className="dash-head">
         <h1>Dashboard do Funil</h1>
         <span className="dash-sub">
-          {CONFIG.brandName} · atualiza a cada carregamento
+          {CONFIG.brandName} · {periodLabel}
         </span>
       </div>
 
+      <section className="dash-filters">
+        <div className="dash-filter-presets">
+          <a
+            className={`dash-chip ${isToday ? "is-active" : ""}`}
+            href={buildHref({})}
+          >
+            Hoje
+          </a>
+          <a
+            className={`dash-chip ${isLast7 ? "is-active" : ""}`}
+            href={buildHref({ from: spToday(6), to: today })}
+          >
+            Últimos 7 dias
+          </a>
+          <a
+            className={`dash-chip ${isAll ? "is-active" : ""}`}
+            href={buildHref({ range: "all" })}
+          >
+            Tudo
+          </a>
+        </div>
+
+        <form className="dash-filter-form" method="get" action="/dashboard">
+          <label className="dash-field">
+            <span>De</span>
+            <input type="date" name="from" defaultValue={isAll ? "" : from} />
+          </label>
+          <label className="dash-field">
+            <span>Até</span>
+            <input type="date" name="to" defaultValue={isAll ? "" : to} />
+          </label>
+          <label className="dash-check">
+            <input
+              type="checkbox"
+              name="completed"
+              value="1"
+              defaultChecked={onlyCompleted}
+            />
+            <span>Somente quem finalizou (nome + WhatsApp)</span>
+          </label>
+          <button type="submit">Filtrar</button>
+        </form>
+      </section>
+
       {total === 0 ? (
         <div className="dash-empty">
-          Ainda não há sessões registradas. Assim que alguém abrir o funil, os dados aparecem aqui.
+          Nenhuma sessão para este filtro. Ajuste o período ou veja{" "}
+          <a href={buildHref({ range: "all" })}>todo o período</a>.
         </div>
       ) : (
         <>
