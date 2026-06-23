@@ -70,16 +70,17 @@ function furthestStage(session: Session): {
   return { label: step ? labelForStep(step) : "Escolheu o caminho", kind: "step" };
 }
 
+const TZ = "America/Sao_Paulo"; // UTC-3
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: TZ,
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
-
-const TZ = "America/Sao_Paulo";
 
 // Data (YYYY-MM-DD) de um ISO no fuso de São Paulo.
 function spDate(iso: string): string {
